@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html><head lang="en"><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+
+    <title>Bayes' Rays</title>
+
+
+
+    <meta name="description" content="">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <meta property="og:image" content="https://bayesrays.github.io/img/baysrays_titlecard.png">
+    <meta property="og:image:type" content="image/png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://bayesrays.github.io">
+    <meta property="og:title" content="Bayes' Rays: Uncertainty Quantification for Neural Radiance Fields">
+    <meta property="og:description" content="Neural Radiance Fields (NeRFs) have shown promise in applications like view synthesis and depth estimation, but their learning from multiview images faces inherent uncertainties. Current methods to quantify them are either heuristic or computationally demanding. We introduce BaysRays, a post-hoc framework to evaluate uncertainty in any pre-trained NeRF without modifying the training process. Our method establishes a volumetric uncertainty field using spatial perturbations and a Bayesian Laplace approximation. We derive our algorithm statistically and highlight its superior performance in key metrics and NeRF-related applications.">
+
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Bayes' Rays: Uncertainty Quantification for Neural Radiance Fields">
+    <meta name="twitter:description" content="Neural Radiance Fields (NeRFs) have shown promise in applications like view synthesis and depth estimation, but their learning from multiview images faces inherent uncertainties. Current methods to quantify them are either heuristic or computationally demanding. We introduce BaysRays, a post-hoc framework to evaluate uncertainty in any pre-trained NeRF without modifying the training process. Our method establishes a volumetric uncertainty field using spatial perturbations and a Bayesian Laplace approximation. We derive our algorithm statistically and highlight its superior performance in key metrics and NeRF-related applications.">
+    <meta name="twitter:image" content="https://bayesrays.github.io/img/bayesrays_titlecard.png">
+
+
+    <!-- mirror: F0%9F%AA%9E&lt -->
+    <link rel="icon" type="image/x-icon" href="./img/favicon.png">
+    <link rel="stylesheet" href="css/bootstrap.min.css">
+    <link rel="stylesheet" href="css/font-awesome.min.css">
+    <link rel="stylesheet" href="css/codemirror.min.css">
+    <link rel="stylesheet" href="css/app.css">
+
+
+
+    <script src="js/jquery.min.js"></script>
+    <script src="js/bootstrap.min.js"></script>
+    <script src="js/codemirror.min.js"></script>
+    <script src="js/clipboard.min.js"></script>
+    <script src="js/video_comparison.js"></script>
+    <script src="js/app.js"></script>
+</head>
+
+<body>
+    <div class="container" id="header" style="text-align: center; margin: auto;">
+        <div class="row" id="title-row" style="max-width: 100%; margin: 0 auto; display: inline-block">
+            <h2 class="col-md-12 text-center" id="title">
+                <b>Bayes' Rays</b>: Uncertainty Quantification for Neural Radiance Fields<br>
+
+            </h2>
+        </div>
+        
+
+	<div class="text-justify">
+
+                    <br><br>
+
+                </div>
+</div>
+
+
+	<div class="row">
+            <div class="col-md-8 col-md-offset-2">
+                
+                <div class="text-center">
+                    <video id="refdir" width="100%" playsinline autoplay loop muted>
+                        <source src="video/TEASER.mp4" type="video/mp4" />
+                    </video>
+                </div>
+            </div>
+        </div>
+
+        
+
+
+        <div class="row">
+            <div class="col-md-8 col-md-offset-2">
+                <h3>
+                    Abstract
+                </h3>
+                <p class="text-justify">
+Neural Radiance Fields (NeRFs) have shown promise in applications like view synthesis and depth estimation, but their learning from multiview images faces inherent uncertainties. Current methods to quantify them are either heuristic or computationally demanding. We introduce <i>BaysRays</i>, a post-hoc framework to evaluate uncertainty in any pre-trained NeRF without modifying the training process. Our method establishes a volumetric uncertainty field using spatial perturbations and a Bayesian Laplace approximation. We derive our algorithm statistically and highlight its superior performance in key metrics and NeRF-related applications.                </p>
+            </div>
+        </div>
+	
+        <div class="row">
+            <div class="col-md-8 col-md-offset-2">
+                <h3>
+                    Epistemic Uncertainty in NeRF: What does it mean intuitively?
+                </h3>
+                <div class="text-justify">
+                    NeRFs rely on training images, taken as 2D projections of a 3D scene, to reconstruct the scene geometry and appearance. Inherently, the projection causes loss of information and leads to ambiguity in the reconstruction problem, making multiple solutions valid for the reconstruction.
+                    This is even more prominent in real scenarios where limited training views of the scene is available. Below is a toy 2D example of a NeRF, where single ray training cameras are observing the scene and the ray color is calculated through volume rendering. All camera rays either start from the top side and end at the bottom or vice versa.
+                    Training multiple NeRFs on this training data, leads to different reconstructions, all valid and minimizing the training loss. Analyzing the geometry of this problem, we can see there exist a null space for each of the blue and red segments. One can <b><i>perturb</i></b> the learned lines, inside this space freely without hurting the reconstruction problem.
+                    <br><br>
+                    
+                </div>
+		<div class="text-center">
+                    <video id="refdir" width="100%" playsinline autoplay loop muted>
+                        <source src="video/ambiguity.mp4" type="video/mp4" />
+                    </video>
+                </div>
+
+                
+            </div>
+        </div>
+	<div class="row">
+	<div class="col-md-8 col-md-offset-2">
+                <h3>
+                    How to parametrize perturbations?
+                </h3>
+                <div class="text-justify">
+                     To parametrize possible perturbations on a pre-trained NeRF (with optimized parameters φ∗) and then analyze if in fact a part of the reconstructed NeRF can be perturbed, we introduce a spatial <i>deformation</i> layer (parametrized by θ) on the input coordinates of NeRf, formalized as below:
+                    <br><br>
+                    
+                </div>
+		<br>
+                <div class="text-center">
+                    <img src="./img/deform.png" width="40%">
+                </div>
+                <br>
+		<div class="text-justify">
+                    
+                    where deformation layer is modeled as a tri-linearly interpolatable grid. We assume a likelihood of the same form as with the NeRF parametrization,<img src="img/normal.png" width="12%" >. To ensure small perturbations, we place a regularizing independent Gaussian prior <img src="img/prior.png" width="10%"> on our new parameters:
+                    <br><br>
+                    
+                </div>
+		<br>
+                <div class="text-center">
+                    <img src="./img/loss.png" width="40%">
+                </div>
+                <br>
+		<div class="text-justify">
+
+            It is now possible to minimize the negative log likelihood term above wrt to θ and with φ∗ frozen, to converge to one of the many valid solutions for the spatial perturbations on a given NeRF that do not affect reconstruction loss. The more <i>freely</i> a perturbation at a point can move the point (i.e bigger variance in the perturbation), the more uncertain we are about the true position of that reconstructed point in the space.
+                    <br><br>
+
+                </div>
+        </div>
+     <div class="col-md-8 col-md-offset-2">
+                <h3>
+                    But wait ...
+                </h3>
+                <div class="text-justify">
+                     As we already have a fully converged NeRF, we know θ* = 0 is a local minimum for the negative log likelihood loss posed above. Knowing that, we can utilize Laplace Approximation at the local minima of a negative log likelihood function!
+                    Laplace Approximation states that with the help of a second order Taylor expansion, the probability distribution described by the negative log likelihood function can be approximated with a Gaussian distribution at the point of minimum. The Covariance matrix of this distribution is then equal to inverse negative Hessian of NLL function at the point of minimum.
+                    We show that by using Fisher Information, the Hessian of loss for the already-converged NeRF can be readily computed using 1st order gradients. Further, we show that the resulting Hessian is sparse enough to allow for a diagonal approximation, leading to fast and efficient inversion of the Hessian. Finally, the Covariance matrix of the deformation gird is computed as:
+                    <br><br>
+
+                </div>
+
+                <div class="text-center">
+                    <img src="./img/cov.png" width="30%">
+                </div>
+		<div class="text-justify">
+
+The diagonal entries of the Covariance matrix, define a marginal variance vector σ = (σx, σy , σz ) at each grid vertex. The norm of this vector ∥σ ∥ is then a positive scalar that measures the local spatial uncertainty
+            of the radiance field at each grid vertex. Through it, we can define <b>our spatial uncertainty field</b>
+            <br><br>
+
+                </div>
+		<br>
+                <div class="text-center">
+                    <img src="./img/unc.png" width="22%">
+                </div>
+                <br>
+		
+		
+        </div>
+
+    <div class="col-md-8 col-md-offset-2">
+                <h3>
+                    Results
+                </h3>
+                <div class="text-justify">
+                 Uncertainty Quantification results: We show correlation of uncertainty to absolute error of given NeRF in depth. Lower the area under the sparsification plot shows higher correlation. Please use the buttons for comparison of pixel ranks in sparsification process, between methods.
+            <br><br>
+
+                </div>
+
+		<div class="text-justify">
+        <table style="width: 100%; text-align: center;">
+  <tr >
+    <td style="vertical-align: middle; padding: 10px; width: calc(8/12*25%);">
+      <div style="position: relative; display: inline-block;">
+        <img id="centr-image" src="img/error.png" style="max-width: 100%; height: auto;">
+      </div>
+    </td>
+    <td style="vertical-align: middle; padding: 10px; width: calc(8/12*25%);">
+      <div style="position: relative; display: inline-block;">
+        <img id="right-image" src="img/ours.png"  style="max-width: 100%; height: auto;">
+      </div>
+    </td>
+    <td style="vertical-align: middle; padding: 10px; width: calc(8/12*25%);">
+      <div style="position: relative; display: inline-block;">
+        <img id="rgb-img" src="img/rgb1.png"   style="max-width: 100%; height: auto;">
+      </div>
+    </td>
+    <td style="vertical-align: middle; padding: 10px; width: calc(8/12*25%);">
+      <div style="position: relative; display: inline-block;">
+        <img id="plt" src="img/plot.png"   style="max-width: 100%; height: auto;">
+      </div>
+    </td>
+  </tr>
+   <tr >
+    <td style="vertical-align: middle; text-align: center;">
+      <button onclick="changeImage('error')" style="transform: translateY(-150%);">Depth Error</button>
+      <button onclick="changeImage('ensemble')" style="transform: translateY(-150%);">Ensemble</button>
+    </td>
+    <td style=" vertical-align: middle; text-align: center;">
+      <button onclick="changeImage('ours')" style="transform: translateY(-150%);">Ours</button>
+      <button onclick="changeImage('cf')" style="transform: translateY(-150%);">CF-NeRF</button>
+      <button onclick="changeImage('ensemble2')" style="transform: translateY(-150%);">Ensemble</button>
+    </td>
+
+  </tr>
+</table>
+		<div class="text-justify">
+                  Clean-up results:
+
+                </div>
+
+		<table>
+    <tr>
+        <td style="width: calc(8/12*16.67%);">
+            <video id="left-video" width="95%" height="auto" loop playsinline autoplay muted controls>
+                <source src="video/rgb_base.mp4" type="video/mp4">
+            </video>
+            <div class="buttons" style="vertical-align: middle;  padding-left: 4%">
+                <button onclick="changeVideo('rgb_base')">Original</button>
+                <button onclick="changeVideo('rgb_nb')">Nerfbuster</button>
+            </div>
+        </td>
+
+        <td style="width: calc(8/12*16.67%);">
+            <video id="right-video" width="95%" height="auto" loop playsinline autoplay muted controls>
+                <source src="video/uncertainty.mp4" type="video/mp4">
+            </video>
+            <div class="buttons" style="vertical-align: middle;  padding-left: 4%">
+                <button onclick="changeVideo('uncertainty')">Uncertainty</button>
+                <button onclick="changeVideo('rgb_clean')">Clean</button>
+            </div>
+        </td>
+        <td style="width: 1%;"></td> <!-- Add some space between columns -->
+        <td style="width: calc(8/12*16.67%);">
+            <video id="left-video-2" width="95%" height="auto" loop playsinline autoplay muted controls>
+                <source src="video/rgb_base_2.mp4" type="video/mp4">
+            </video>
+            <div class="buttons" style="vertical-align: middle;  padding-left: 4%">
+                <button onclick="changeVideo2('rgb_base')">Original</button>
+                <button onclick="changeVideo2('rgb_nb')">Nerfbuster</button>
+            </div>
+        </td>
+
+        <td style="width: calc(8/12*16.67%);">
+            <video id="right-video-2" width="95%" height="auto" loop playsinline autoplay muted controls>
+                <source src="video/uncertainty_2.mp4" type="video/mp4">
+            </video>
+            <div class="buttons" style="vertical-align: middle;  padding-left: 4%">
+                <button onclick="changeVideo2('uncertainty')">Uncertainty</button>
+                <button onclick="changeVideo2('rgb_clean')">Clean</button>
+            </div>
+        </td>
+        <td style="width: 1%;"></td> <!-- Add some space between columns -->
+        <td style="width: calc(8/12*16.67%); ">
+            <video id="left-video-3" width="95%" height="auto" loop playsinline autoplay muted controls>
+                <source src="video/rgb_base_3.mp4" type="video/mp4">
+            </video>
+            <div class="buttons" style="vertical-align: middle; padding-left: 4%">
+                <button onclick="changeVideo3('rgb_base')">Original</button>
+                <button onclick="changeVideo3('rgb_nb')">Nerfbuster</button>
+            </div>
+        </td>
+
+        <td style="width: calc(8/12*16.67%);">
+            <video id="right-video-3" width="95%" height="auto" loop playsinline autoplay muted controls>
+                <source src="video/uncertainty_3.mp4" type="video/mp4">
+            </video>
+            <div class="buttons" style="vertical-align: middle;  padding-left: 4%">
+                <button onclick="changeVideo3('uncertainty')">Uncertainty</button>
+                <button onclick="changeVideo3('rgb_clean')">Clean</button>
+            </div>
+        </td>
+    </tr>
+</table>
+
+		<table width="100%" style="table-layout:fixed"><tr><td style="text-align:center" width="33%">Picnic</td><td style="text-align:center" width="33%">Pikachu</td><td style="text-align:center" width="33%">Century</td></tr></table>
+
+        	<br>
+
+
+        <div class="text-justify">
+                  Demo:
+
+                </div>
+
+		<table>
+		    <tr >
+                <td>
+                   <video id="refdir" width="100%" playsinline autoplay loop muted>
+                        <source src="video/demo1.mp4" type="video/mp4" />
+                   </video>
+                </td>
+            </tr>
+        </table>
+        </div>
+
+
+        
+
+
+        <div class="row">
+            <div class="col-md-8 col-md-offset-2">
+                <h3>
+                    Acknowledgements
+                </h3>
+                <p class="text-justify">
+                    <br>
+                The website template was borrowed from <a href="https://dorverbin.github.io/refnerf/">Dor Verbin</a>.
+                </p>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+
+
+<script>
+    function changeVideo(videoName) {
+      const leftVideo = document.getElementById('left-video');
+      const rightVideo = document.getElementById('right-video');
+
+      if (videoName === 'rgb_base') {
+        leftVideo.src = 'video/rgb_base.mp4';
+
+      } else if (videoName === 'rgb_nb') {
+        leftVideo.src = 'video/rgb_nb.mp4';
+
+      } else if (videoName === 'uncertainty') {
+        rightVideo.src = 'video/uncertainty.mp4';
+
+      } else if (videoName === 'rgb_clean') {
+        rightVideo.src = 'video/rgb_clean.mp4';
+
+      }
+      leftVideo.load();
+      rightVideo.load();
+      leftVideo.play();
+      rightVideo.play();
+    }
+
+    function changeVideo2(videoName) {
+      const leftVideo = document.getElementById('left-video-2');
+      const rightVideo = document.getElementById('right-video-2');
+
+      if (videoName === 'rgb_base') {
+        leftVideo.src = 'video/rgb_base_2.mp4';
+
+      } else if (videoName === 'rgb_nb') {
+        leftVideo.src = 'video/rgb_nb_2.mp4';
+
+      } else if (videoName === 'uncertainty') {
+        rightVideo.src = 'video/uncertainty_2.mp4';
+
+      } else if (videoName === 'rgb_clean') {
+        rightVideo.src = 'video/rgb_clean_2.mp4';
+
+      }
+      leftVideo.load();
+      rightVideo.load();
+      leftVideo.play();
+      rightVideo.play();
+    }
+
+    function changeVideo3(videoName) {
+      const leftVideo = document.getElementById('left-video-3');
+      const rightVideo = document.getElementById('right-video-3');
+
+      if (videoName === 'rgb_base') {
+        leftVideo.src = 'video/rgb_base_3.mp4';
+
+      } else if (videoName === 'rgb_nb') {
+        leftVideo.src = 'video/rgb_nb_3.mp4';
+
+      } else if (videoName === 'uncertainty') {
+        rightVideo.src = 'video/uncertainty_3.mp4';
+
+      } else if (videoName === 'rgb_clean') {
+        rightVideo.src = 'video/rgb_clean_3.mp4';
+
+      }
+      leftVideo.load();
+      rightVideo.load();
+      leftVideo.play();
+      rightVideo.play();
+    }
+    function changeImage(videoName) {
+      const leftVideo = document.getElementById('centr-image');
+      const rightVideo = document.getElementById('right-image');
+
+      if (videoName === 'error') {
+        leftVideo.src = 'img/error.png';
+
+      } else if (videoName === 'ensemble') {
+        leftVideo.src = 'img/ensemble.png';
+
+      } else if (videoName === 'ours') {
+        rightVideo.src = 'img/ours.png';
+
+      } else if (videoName === 'cf') {
+        rightVideo.src = 'img/cf.png';
+
+      } else if (videoName === 'ensemble2') {
+        rightVideo.src = 'img/ensemble.png';
+
+      }
+
+    }
+  </script>
+        
+
+	
+</body></html>
